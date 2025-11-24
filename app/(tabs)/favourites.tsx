@@ -1,12 +1,12 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { toggleFavourite } from '@/store/slices/itemsSlice';
+import type { RootState } from '@/store/store';
 import { useAppDispatch, useAppSelector } from '@/store/store';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 // Helper function to get exercise icon based on muscle group
 const getExerciseIcon = (muscle: string, index: number) => {
@@ -54,37 +54,44 @@ const getIconBackgroundColor = (muscle: string) => {
   return colors[muscle?.toLowerCase()] || '#E8F5E9';
 };
 
-export default function HomeScreen() {
-  const items = useAppSelector((s: any) => s.items.items);
-  const favourites = useAppSelector((s: any) => s.items.favourites);
+export default function FavouritesScreen() {
+  const items = useAppSelector((s: RootState) => s.items.items) as any[];
+  const favourites = useAppSelector((s: RootState) => s.items.favourites) as number[];
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  const favItems = items.filter((i) => favourites.includes(i.id));
+
   return (
     <ThemedView style={styles.container}>
-      <FlatList
-        data={items}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[styles.listContent, { paddingTop: 20 }]}
-        ListHeaderComponent={
-          <View style={styles.headerSection}>
-            <ThemedText type="title" style={styles.pageTitle}>💪 Exercises</ThemedText>
-            <ThemedText style={styles.pageSubtitle}>Build strength and endurance</ThemedText>
-          </View>
-        }
-        renderItem={({ item, index }) => {
-          const fav = favourites.includes(item.id);
-          const exerciseIcon = getExerciseIcon(item.muscle, index);
-          const iconBgColor = getIconBackgroundColor(item.muscle);
-          return (
-            <Pressable
-              onPress={() => router.push(`/details/${item.id}` as any)}
-              style={styles.card}>
+      {favItems.length === 0 ? (
+        <View style={styles.emptyState}>
+          <ThemedText style={styles.emptyEmoji}>♡</ThemedText>
+          <ThemedText style={styles.emptyTitle}>No Favourites Yet</ThemedText>
+          <ThemedText style={styles.emptyText}>Start adding exercises to your favourites!</ThemedText>
+        </View>
+      ) : (
+        <FlatList
+          data={favItems}
+          keyExtractor={(i) => String(i.id)}
+          contentContainerStyle={[styles.listContent, { paddingTop: 20 }]}
+          ListHeaderComponent={
+            <View style={styles.headerSection}>
+              <ThemedText type="title" style={styles.pageTitle}>♥️ My Favourites</ThemedText>
+              <ThemedText style={styles.pageSubtitle}>{favItems.length} saved exercise{favItems.length !== 1 ? 's' : ''}</ThemedText>
+            </View>
+          }
+          renderItem={({ item, index }) => {
+            const exerciseIcon = getExerciseIcon(item.muscle, index);
+            const iconBgColor = getIconBackgroundColor(item.muscle);
+            return (
+            <Pressable onPress={() => router.push(`/details/${item.id}` as any)} style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={[styles.iconCircle, { backgroundColor: iconBgColor }]}>
                   <ThemedText style={styles.iconEmoji}>{exerciseIcon}</ThemedText>
                 </View>
                 <Pressable onPress={() => dispatch(toggleFavourite(item.id))} style={styles.favoriteButton}>
-                  <Feather name="heart" size={22} color={fav ? '#e91e63' : '#999'} fill={fav ? '#e91e63' : 'none'} />
+                  <Feather name="heart" size={22} color="#e91e63" fill="#e91e63" />
                 </Pressable>
               </View>
               <View style={styles.cardContent}>
@@ -97,9 +104,9 @@ export default function HomeScreen() {
                 )}
               </View>
             </Pressable>
-          );
-        }}
-      />
+          )}}
+        />
+      )}
     </ThemedView>
   );
 }
@@ -113,7 +120,7 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#e91e63',
     marginBottom: 4,
   },
   pageSubtitle: {
@@ -172,5 +179,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#1976D2',
     fontWeight: '500',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  emptyEmoji: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'center',
   },
 });
